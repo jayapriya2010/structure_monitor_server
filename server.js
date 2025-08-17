@@ -1,15 +1,38 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const { MongoClient, ServerApiVersion } = require('mongodb');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Local storage for sensor data
-const localDataStore = {
-    sensorData: []
-};
+// MongoDB connection URI
+const uri = "mongodb+srv://admin:All-Father%4062@cluster0.qgpxaje.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+
+const client = new MongoClient(uri, {
+    serverApi: {
+        version: ServerApiVersion.v1,
+        strict: true,
+        deprecationErrors: true,
+    }
+});
+
+let sensorCollection;
+
+// Connect to MongoDB and keep connection open
+async function connectMongo() {
+    try {
+        await client.connect();
+        await client.db("admin").command({ ping: 1 });
+        console.log("Pinged your deployment. You successfully connected to MongoDB!");
+        // Use 'project1' database and 'sensorData' collection
+        sensorCollection = client.db("project1").collection("sensorData");
+    } catch (error) {
+        console.error("MongoDB connection error:", error);
+    }
+}
+connectMongo();
 
 // Function to get the current IST date and time
 function getISTDateTime() {
@@ -40,7 +63,7 @@ app.get('/', (req, res) => {
 });
 
 // POST endpoint for sensor data
-app.post('/api/sensor-data', (req, res) => {
+app.post('/api/sensor-data', async (req, res) => {
     console.log('Received data:', req.body);
 
     const {
@@ -61,11 +84,8 @@ app.post('/api/sensor-data', (req, res) => {
     };
 
     try {
-        // Store in local memory
-        localDataStore.sensorData.unshift(newData);
-        if (localDataStore.sensorData.length > 100) {
-            localDataStore.sensorData = localDataStore.sensorData.slice(0, 100);
-        }
+        // Store in MongoDB
+        await sensorCollection.insertOne(newData);
 
         res.status(200).json({
             success: true,
@@ -82,12 +102,15 @@ app.post('/api/sensor-data', (req, res) => {
 });
 
 // GET endpoint for sensor data
-app.get('/api/sensor-data', (req, res) => {
+app.get('/api/sensor-data', async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
-    
     try {
-        const data = localDataStore.sensorData.slice(0, limit);
-        
+        // Fetch latest data from MongoDB
+        const data = await sensorCollection.find({})
+            .sort({ timestamp: -1 })
+            .limit(limit)
+            .toArray();
+
         res.status(200).json({
             success: true,
             data: data
@@ -102,12 +125,18 @@ app.get('/api/sensor-data', (req, res) => {
 });
 
 // GET endpoint for latest reading
-app.get('/api/sensor-data/latest', (req, res) => {
+app.get('/api/sensor-data/latest', async (req, res) => {
     try {
-        if (localDataStore.sensorData.length > 0) {
+        // Fetch latest single entry from MongoDB
+        const latest = await sensorCollection.find({})
+            .sort({ timestamp: -1 })
+            .limit(1)
+            .toArray();
+
+        if (latest.length > 0) {
             res.status(200).json({
                 success: true,
-                data: localDataStore.sensorData[0]
+                data: latest[0]
             });
         } else {
             res.status(404).json({
