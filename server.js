@@ -66,19 +66,33 @@ app.get('/', (req, res) => {
 app.post('/api/sensor-data', async (req, res) => {
     console.log('Received data:', req.body);
 
+    // Accept all new fields, set missing fields to 0 or null as appropriate
     const {
-        inclination,
-        vibration,
-        pressure,
-        force
+        pitch,
+        roll,
+        rms,
+        peak,
+        crest_factor,
+        f_dom,
+        temp,
+        sw18010p,
+        fsr_adc,
+        fsr_force_N,
+        fsr_pressure_Pa
     } = req.body;
 
-    // Accept partial data, set missing fields to 0
     const newData = {
-        inclination: inclination !== undefined && inclination !== null ? Number(inclination) : 0,
-        vibration: vibration !== undefined && vibration !== null ? Number(vibration) : 0,
-        pressure: pressure !== undefined && pressure !== null ? Number(pressure) : 0,
-        force: force !== undefined && force !== null ? Number(force) : 0,
+        pitch: pitch !== undefined && pitch !== null ? Number(pitch) : 0,
+        roll: roll !== undefined && roll !== null ? Number(roll) : 0,
+        rms: rms !== undefined && rms !== null ? Number(rms) : 0,
+        peak: peak !== undefined && peak !== null ? Number(peak) : 0,
+        crest_factor: crest_factor !== undefined && crest_factor !== null ? Number(crest_factor) : 0,
+        f_dom: f_dom !== undefined && f_dom !== null ? Number(f_dom) : 0,
+        temp: temp !== undefined && temp !== null ? Number(temp) : 0,
+        sw18010p: sw18010p !== undefined && sw18010p !== null ? Number(sw18010p) : 0,
+        fsr_adc: fsr_adc !== undefined && fsr_adc !== null ? Number(fsr_adc) : 0,
+        fsr_force_N: fsr_force_N !== undefined && fsr_force_N !== null ? Number(fsr_force_N) : 0,
+        fsr_pressure_Pa: fsr_pressure_Pa !== undefined && fsr_pressure_Pa !== null ? Number(fsr_pressure_Pa) : 0,
         timestamp: getISTDateTime(),
         id: Date.now().toString()
     };
